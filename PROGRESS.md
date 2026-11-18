@@ -1,14 +1,14 @@
 # PROGRESS.md — JontroBazar (server)
 
 ## Current Status
-- Last completed task: Step 2 — Server: users collection setup, JWT utilities, role middlewares (`verifyToken`, `verifyCustomer`, `verifyOwner`, `verifyAdmin`), and user profile/admin management routes
-- Currently working on: Ready for Step 3 (Client: layout, navbar/footer, theme, loading & error pages)
-- Overall: 2 / 12 build steps done
+- Last completed task: Step 3 — Client layout, screenshot-accurate navbar & footer, theme, loading & error pages completed
+- Currently working on: Ready for Step 4 (Auth: BetterAuth Next.js setup, register, login, Google social auth, role handling)
+- Overall: 3 / 12 build steps done
 
 ## Next Steps
-1. Move to Client (Step 3): Build dynamic responsive Navbar and Footer (with new X logo)
-2. Setup theme toggle (light/dark with localStorage)
-3. Implement global loading page (`loading.js`), error boundary (`error.js`), and not-found page (`not-found.js`)
+1. Support Step 4: Connect BetterAuth client session JWT with Express auth middleware
+2. Step 5 (Owner Equipment CRUD): Implement equipment collection, schema validation, and owner endpoints (`POST /api/equipment`, `GET /api/equipment/my-equipment`, `PUT /api/equipment/:id`, `DELETE /api/equipment/:id`)
+3. Prepare equipment status workflow (`pending`, `approved`, `rejected`) for Admin review
 
 ## Completed Features (summary checklist)
 - [x] Setup & env
