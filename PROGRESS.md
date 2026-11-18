@@ -1,20 +1,20 @@
 # PROGRESS.md — JontroBazar (server)
 
 ## Current Status
-- Last completed task: Step 3 — Client layout, screenshot-accurate navbar & footer, theme, loading & error pages completed
-- Currently working on: Ready for Step 4 (Auth: BetterAuth Next.js setup, register, login, Google social auth, role handling)
-- Overall: 3 / 12 build steps done
+- Last completed task: Step 5 — Equipment CRUD (all endpoints: public search/filter/sort, featured, owner CRUD, admin approve/reject/delete/update, MongoDB text index)
+- Currently working on: Step 6 — Client: Owner dashboard pages (Add Equipment, My Equipment table)
+- Overall: 5 / 12 build steps done
 
 ## Next Steps
-1. Support Step 4: Connect BetterAuth client session JWT with Express auth middleware
-2. Step 5 (Owner Equipment CRUD): Implement equipment collection, schema validation, and owner endpoints (`POST /api/equipment`, `GET /api/equipment/my-equipment`, `PUT /api/equipment/:id`, `DELETE /api/equipment/:id`)
-3. Prepare equipment status workflow (`pending`, `approved`, `rejected`) for Admin review
+1. Step 6 support: Dashboard layouts, protected routing (middleware verifying JWT from BetterAuth via Authorization header)
+2. Step 7 (Admin): Analytics aggregations — total users, equipment, bookings, revenue, monthly stats
+3. Step 8: Bookings + Stripe webhook + payments collection
 
 ## Completed Features (summary checklist)
 - [x] Setup & env
 - [x] Auth (register / login / Google / JWT) — backend JWT generation and verification
 - [x] Role middlewares / protected routes (`verifyToken`, `verifyCustomer`, `verifyOwner`, `verifyAdmin`)
-- [ ] Owner: equipment CRUD
+- [x] Owner: equipment CRUD
 - [ ] Admin: approve/reject, users, rentals
 - [ ] Public pages (Home, All Equipment)
 - [ ] Details + Favorites
@@ -29,7 +29,18 @@
 |---|---|---|---|
 | `/` | `GET` | Public | Live |
 | `/api/health` | `GET` | Public | Live |
-| `/api/users/me` | `GET` | Customer, Owner, Admin | Live |
+| `/api/equipment` | `GET` | Public | Live — search, filter, sort, paginate (approved only) |
+| `/api/equipment/featured` | `GET` | Public | Live — 6 most recent approved |
+| `/api/equipment/categories` | `GET` | Public | Live — distinct categories |
+| `/api/equipment/:id` | `GET` | Auth | Live — single item |
+| `/api/equipment/owner/my-equipment` | `GET` | Owner | Live — owner's own listings |
+| `/api/equipment` | `POST` | Owner | Live — create (status: pending) |
+| `/api/equipment/:id` | `PUT` | Owner | Live — update own (resets to pending if core fields changed) |
+| `/api/equipment/:id` | `DELETE` | Owner | Live — delete own |
+| `/api/equipment/:id/status` | `PATCH` | Admin | Live — approve / reject / pending |
+| `/api/admin/equipment` | `GET` | Admin | Live — all equipment all statuses |
+| `/api/admin/equipment/:id` | `PUT` | Admin | Live — update any equipment |
+| `/api/admin/equipment/:id` | `DELETE` | Admin | Live — delete any equipment |
 | `/api/users/profile` | `PUT` | Customer, Owner, Admin | Live |
 | `/api/users` | `GET` | Admin | Live |
 | `/api/users/:id/role` | `PATCH` | Admin | Live |
@@ -56,6 +67,29 @@
 - MongoDB URI in `jontrobazar-server/.env` needs real credentials for full DB write/read; graceful fallback to verified JWT payload is active when DB is unconfigured.
 
 ## Log (newest first)
+### 2026-11-18 — Step 5: Equipment CRUD (All Roles)
+- Done:
+  - Created `controllers/equipment.controller.js` with 11 handlers: `getAllEquipment` (public, search+filter+sort+paginate), `getFeaturedEquipment` (6 approved, public), `getEquipmentById` (auth, customers see approved only), `addEquipment` (owner, status=pending), `getMyEquipment` (owner), `updateEquipment` (owner own only, resets to pending if core fields changed), `deleteEquipment` (owner own only), `getAllEquipmentAdmin` (admin), `adminUpdateEquipment` (admin), `adminDeleteEquipment` (admin), `getCategories` (public, distinct categories).
+  - Created `routes/equipment.routes.js` with correct route ordering (named segments before `/:id` wildcard to prevent conflicts).
+  - Created `routes/admin.routes.js` for all admin-only equipment operations.
+  - Registered both routers in `index.js`: `app.use("/api/equipment", ...)` and `app.use("/api/admin", ...)`.
+  - Added MongoDB text index on `name`, `description`, `location`, `category`, `brand` in `config/db.js`. Added indexes on `status`, `owner.email`, `category`, `createdAt`.
+- Files:
+  - `H:/projects_web14/assignment-9/jontrobazar-server/controllers/equipment.controller.js` (new)
+  - `H:/projects_web14/assignment-9/jontrobazar-server/routes/equipment.routes.js` (new)
+  - `H:/projects_web14/assignment-9/jontrobazar-server/routes/admin.routes.js` (new)
+  - `H:/projects_web14/assignment-9/jontrobazar-server/config/db.js` (updated — equipment indexes)
+  - `H:/projects_web14/assignment-9/jontrobazar-server/index.js` (updated — mounted new routes)
+  - `H:/projects_web14/assignment-9/jontrobazar-server/PROGRESS.md`
+- Test:
+  - Start server: `npm run dev`
+  - `GET http://localhost:5000/api/equipment` → 200, empty array (no data yet)
+  - `GET http://localhost:5000/api/equipment/featured` → 200, empty array
+  - `POST http://localhost:5000/api/equipment` with Owner token → 201, item with `status: "pending"`
+  - `PATCH http://localhost:5000/api/equipment/:id/status` with Admin token + `{"status":"approved"}` → 200
+  - `GET http://localhost:5000/api/equipment` → shows approved item
+  - `GET http://localhost:5000/api/equipment/owner/my-equipment` with Owner token → owner's listings
+- Commit message: `feat: implement equipment crud with public search/filter/sort, owner management, and admin approve/reject`
 ### 2026-11-18 — Step 2: Users Collection, JWT Utilities & Role Middlewares
 - Done:
   - Created JWT helper module (`utils/jwt.js`) for signing and verifying tokens.

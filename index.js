@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB, getDb } from "./config/db.js";
 import userRoutes from "./routes/user.routes.js";
+import equipmentRoutes from "./routes/equipment.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 dotenv.config();
 
@@ -30,6 +32,8 @@ app.use(express.json());
 
 // Routes
 app.use("/api/users", userRoutes);
+app.use("/api/equipment", equipmentRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Basic health check route
 app.get("/", (req, res) => {

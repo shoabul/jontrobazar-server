@@ -31,12 +31,26 @@ export const connectDB = async () => {
     db = client.db(dbName);
     console.log(`✅ MongoDB connected successfully to database: "${dbName}"`);
 
-    // Ensure collections and unique indexes
+    // Ensure indexes — users
     try {
       await db.collection("users").createIndex({ email: 1 }, { unique: true });
       await db.collection("users").createIndex({ role: 1 });
     } catch (indexErr) {
       console.warn("Notice: users indexes verified or already exist:", indexErr.message);
+    }
+
+    // Ensure indexes — equipment
+    try {
+      await db.collection("equipment").createIndex(
+        { name: "text", description: "text", location: "text", category: "text", brand: "text" },
+        { name: "equipment_text_search" }
+      );
+      await db.collection("equipment").createIndex({ status: 1 });
+      await db.collection("equipment").createIndex({ "owner.email": 1 });
+      await db.collection("equipment").createIndex({ category: 1 });
+      await db.collection("equipment").createIndex({ createdAt: -1 });
+    } catch (indexErr) {
+      console.warn("Notice: equipment indexes verified or already exist:", indexErr.message);
     }
 
     return db;
