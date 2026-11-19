@@ -11,7 +11,7 @@ import { verifyToken, verifyCustomer, verifyOwner, verifyAdmin } from "../middle
 const router = express.Router();
 
 // Customer creates a booking
-router.post("/", verifyCustomer, createBooking);                           // POST   /api/bookings
+router.post("/", verifyToken, verifyCustomer, createBooking);              // POST   /api/bookings
 
 // Customer views their rentals
 router.get("/my-rentals", verifyToken, getMyRentals);                      // GET    /api/bookings/my-rentals

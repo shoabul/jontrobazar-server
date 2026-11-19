@@ -105,7 +105,7 @@ export async function createCheckoutSession(req, res) {
         },
       ],
       success_url: `${clientUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${clientUrl}/equipment/${equipmentId}`,
+      cancel_url: `${clientUrl}/payment/cancel?session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         bookingId: bookingId.toString(),
         customerEmail: email,
