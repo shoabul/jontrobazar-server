@@ -3,6 +3,7 @@ import {
   getAllEquipment,
   getFeaturedEquipment,
   getEquipmentById,
+  checkAvailability,
   addEquipment,
   getMyEquipment,
   updateEquipment,
@@ -18,6 +19,8 @@ const router = express.Router();
 router.get("/featured", getFeaturedEquipment);                     // GET /api/equipment/featured
 router.get("/categories", getCategories);                          // GET /api/equipment/categories
 router.get("/", getAllEquipment);                                   // GET /api/equipment
+router.get("/:id/availability", checkAvailability);                // GET /api/equipment/:id/availability
+router.get("/:id", getEquipmentById);                              // GET /api/equipment/:id (public - shows approved only for non-owners)
 
 // ─── Owner routes (before /:id to avoid wildcard conflict) ───────────────────
 router.get("/owner/my-equipment", verifyOwner, getMyEquipment);    // GET /api/equipment/owner/my-equipment
@@ -27,8 +30,5 @@ router.delete("/:id", verifyOwner, deleteEquipment);               // DELETE /ap
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────
 router.patch("/:id/status", verifyAdmin, updateEquipmentStatus);   // PATCH /api/equipment/:id/status
-
-// ─── Auth required single item (last to avoid conflicts with named segments) ──
-router.get("/:id", verifyToken, getEquipmentById);                 // GET /api/equipment/:id
 
 export default router;

@@ -11,6 +11,12 @@ function equipmentCollection() {
   return db.collection(COLLECTION);
 }
 
+function db() {
+  const d = getDb();
+  if (!d) throw new Error("Database not connected");
+  return d;
+}
+
 function sanitizeEquipment(body, ownerInfo) {
   const {
     name,
@@ -143,6 +149,72 @@ export async function getFeaturedEquipment(req, res) {
     .toArray();
 
   res.json({ success: true, data: items });
+}
+
+/**
+ * GET /api/equipment/:id/availability
+ * Public — check availability for a date range and quantity
+ * Query: startDate, endDate, quantity
+ */
+export async function checkAvailability(req, res) {
+  const col = equipmentCollection();
+  const database = getDb();
+  const bookingsCol = database.collection("bookings");
+  const { id } = req.params;
+  const { startDate, endDate, quantity = 1 } = req.query;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ success: false, message: "Invalid equipment ID" });
+  }
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({ success: false, message: "startDate and endDate are required" });
+  }
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const qty = parseInt(quantity, 10);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+    return res.status(400).json({ success: false, message: "Invalid date range" });
+  }
+  if (isNaN(qty) || qty < 1) {
+    return res.status(400).json({ success: false, message: "quantity must be a positive integer" });
+  }
+
+  const equipment = await col.findOne({ _id: new ObjectId(id) });
+  if (!equipment) {
+    return res.status(404).json({ success: false, message: "Equipment not found" });
+  }
+
+  if (equipment.status !== "approved") {
+    return res.json({ success: true, data: { available: false, message: "Equipment not available for booking" } });
+  }
+
+  // Count overlapping confirmed/pending bookings
+  const overlapping = await bookingsCol
+    .find({
+      equipmentId: id.toString(),
+      bookingStatus: { $in: ["confirmed", "pending", "completed"] },
+      $or: [{ startDate: { $lt: end }, endDate: { $gt: start } }],
+    })
+    .toArray();
+
+  const bookedQty = overlapping.reduce((sum, b) => sum + (b.quantity || 1), 0);
+  const availableQty = (equipment.quantity || 0) - bookedQty;
+  const isAvailable = qty <= availableQty;
+
+  res.json({
+    success: true,
+    data: {
+      available: isAvailable,
+      availableQty: Math.max(0, availableQty),
+      requestedQty: qty,
+      message: isAvailable
+        ? `${availableQty} unit(s) available for the selected dates`
+        : `Only ${Math.max(0, availableQty)} unit(s) available for the selected dates`,
+    },
+  });
 }
 
 /**
