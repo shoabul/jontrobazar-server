@@ -8,6 +8,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import favoritesRoutes from "./routes/favorites.routes.js";
 import bookingsRoutes from "./routes/bookings.routes.js";
 import paymentsRoutes from "./routes/payments.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 import { stripeWebhook } from "./controllers/payments.controller.js";
 
 dotenv.config();
@@ -49,6 +50,7 @@ app.post(
 );
 
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // Basic health check route
 app.get("/", (req, res) => {
