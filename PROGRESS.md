@@ -1,9 +1,9 @@
 # PROGRESS.md — JontroBazar (server)
 
 ## Current Status
-- Last completed task: Step 6 (Server) — Favorites: `GET/POST/DELETE /api/favorites` + `GET /api/favorites/check/:id`, unique user-equipment index
-- Currently working on: Step 7 (Server) — Bookings + Stripe (availability check, checkout session, webhook, payments collection)
-- Overall: 6 / 12 build steps done
+- Last completed task: Step 7 (Server) — Bookings + Stripe (create with availability check, checkout session, verify, webhook, payments collection, booking status updates)
+- Currently working on: Step 8 (Server) — Analytics aggregations (owner + admin)
+- Overall: 7 / 12 build steps done
 
 ## Next Steps
 1. Step 7 (Server): Bookings + Stripe — booking creation with availability validation, Stripe Checkout session, webhook that creates payment record + confirms booking
@@ -20,8 +20,8 @@
 - [x] Role middlewares / protected routes (`verifyToken`, `verifyCustomer`, `verifyOwner`, `verifyAdmin`)
 - [x] Owner: equipment CRUD
 - [x] Favorites: `GET/POST/DELETE /api/favorites` + `GET /api/favorites/check/:id`
+- [x] Bookings + Stripe: create (availability), checkout session, verify, webhook, payments, status updates
 - [ ] Admin: approve/reject, users, rentals
-- [ ] Bookings + Stripe + Payments
 - [ ] Analytics
 - [ ] Public pages (Home, All Equipment) — client-side
 - [ ] Details + Favorites UI — client-side
@@ -73,6 +73,36 @@
 - MongoDB URI in `jontrobazar-server/.env` needs real credentials for full DB write/read; graceful fallback to verified JWT payload is active when DB is unconfigured.
 
 ## Log (newest first)
+### 2026-11-19 — Step 7 (Server): Bookings + Stripe
+- Done:
+  - Created `controllers/bookings.controller.js` with 5 handlers:
+    - `createBooking` — validates equipmentId, dates, quantity; checks availability against overlapping confirmed/pending bookings; computes `days = ceil((end-start)/1day)`, `totalAmount = dailyPrice * days * qty`; creates booking with `paymentStatus: "unpaid"`, `bookingStatus: "pending"`.
+    - `getMyRentals` — customer's bookings by email.
+    - `getOwnerRentals` — owner's equipment bookings by email.
+    - `getAllBookings` — admin view all.
+    - `updateBookingStatus` — owner (own equipment) or admin updates status to `confirmed`/`completed`/`cancelled`.
+  - Created `controllers/payments.controller.js` with 3 handlers:
+    - `createCheckoutSession` — creates Stripe Checkout Session with BDT currency, line item from booking, success/cancel URLs with metadata (`bookingId`, `customerEmail`).
+    - `verifyPayment` — idempotent session verification; creates `payments` record; updates booking to `paymentStatus: "paid"`, `bookingStatus: "confirmed"`.
+    - `stripeWebhook` — async fallback for `checkout.session.completed`; verifies signature; records payment + updates booking.
+  - Created `routes/bookings.routes.js` — all routes with appropriate role middlewares (`verifyCustomer` for create, `verifyToken` for views, `verifyOwner`/`verifyAdmin` for owner-rentals/all/status).
+  - Created `routes/payments.routes.js` — checkout + verify under `verifyToken`; webhook mounted separately in `index.js` with `express.raw()` for signature verification.
+  - Registered bookings + payments routers in `index.js`; mounted webhook before `express.json()`.
+  - Added MongoDB indexes in `config/db.js`:
+    - `bookings`: customer.email, owner.email, equipmentId, bookingStatus, paymentStatus, createdAt, compound (equipmentId, bookingStatus, startDate, endDate) for availability queries.
+    - `payments`: bookingId, transactionId (unique), customerEmail, createdAt.
+- Files:
+  - `controllers/bookings.controller.js` (new)
+  - `controllers/payments.controller.js` (new)
+  - `routes/bookings.routes.js` (new)
+  - `routes/payments.routes.js` (new)
+  - `index.js` (updated — mounted routers + raw-body webhook)
+  - `config/db.js` (updated — bookings & payments indexes)
+  - `PROGRESS.md` (updated)
+- Test:
+  - `node --check` passes on all 4 new files + `index.js`.
+- Commit message: `feat: implement bookings with availability check, stripe checkout session, verify, webhook, and payments collection`
+
 ### 2026-11-19 — Step 6 (Server): Favorites Endpoints
 - Done:
   - Created `controllers/favorites.controller.js` with 4 handlers:

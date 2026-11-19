@@ -65,6 +65,30 @@ export const connectDB = async () => {
       console.warn("Notice: favorites indexes verified or already exist:", indexErr.message);
     }
 
+    // Ensure indexes — bookings
+    try {
+      await db.collection("bookings").createIndex({ "customer.email": 1 });
+      await db.collection("bookings").createIndex({ "owner.email": 1 });
+      await db.collection("bookings").createIndex({ equipmentId: 1 });
+      await db.collection("bookings").createIndex({ bookingStatus: 1 });
+      await db.collection("bookings").createIndex({ paymentStatus: 1 });
+      await db.collection("bookings").createIndex({ createdAt: -1 });
+      // Compound for availability checks
+      await db.collection("bookings").createIndex({ equipmentId: 1, bookingStatus: 1, startDate: 1, endDate: 1 });
+    } catch (indexErr) {
+      console.warn("Notice: bookings indexes verified or already exist:", indexErr.message);
+    }
+
+    // Ensure indexes — payments
+    try {
+      await db.collection("payments").createIndex({ bookingId: 1 });
+      await db.collection("payments").createIndex({ transactionId: 1 }, { unique: true });
+      await db.collection("payments").createIndex({ customerEmail: 1 });
+      await db.collection("payments").createIndex({ createdAt: -1 });
+    } catch (indexErr) {
+      console.warn("Notice: payments indexes verified or already exist:", indexErr.message);
+    }
+
     return db;
   } catch (error) {
     console.error("❌ MongoDB connection error:", error.message);

@@ -6,6 +6,9 @@ import userRoutes from "./routes/user.routes.js";
 import equipmentRoutes from "./routes/equipment.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import favoritesRoutes from "./routes/favorites.routes.js";
+import bookingsRoutes from "./routes/bookings.routes.js";
+import paymentsRoutes from "./routes/payments.routes.js";
+import { stripeWebhook } from "./controllers/payments.controller.js";
 
 dotenv.config();
 
@@ -36,6 +39,16 @@ app.use("/api/users", userRoutes);
 app.use("/api/equipment", equipmentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/favorites", favoritesRoutes);
+app.use("/api/bookings", bookingsRoutes);
+
+// Stripe webhook MUST use raw body — mount BEFORE express.json() would parse it
+app.post(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhook
+);
+
+app.use("/api/payments", paymentsRoutes);
 
 // Basic health check route
 app.get("/", (req, res) => {
