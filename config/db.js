@@ -53,6 +53,18 @@ export const connectDB = async () => {
       console.warn("Notice: equipment indexes verified or already exist:", indexErr.message);
     }
 
+    // Ensure indexes — favorites (one favorite per user per equipment)
+    try {
+      await db.collection("favorites").createIndex(
+        { userEmail: 1, equipmentId: 1 },
+        { unique: true, name: "user_equipment_unique" }
+      );
+      await db.collection("favorites").createIndex({ userEmail: 1 });
+      await db.collection("favorites").createIndex({ equipmentId: 1 });
+    } catch (indexErr) {
+      console.warn("Notice: favorites indexes verified or already exist:", indexErr.message);
+    }
+
     return db;
   } catch (error) {
     console.error("❌ MongoDB connection error:", error.message);

@@ -5,6 +5,7 @@ import { connectDB, getDb } from "./config/db.js";
 import userRoutes from "./routes/user.routes.js";
 import equipmentRoutes from "./routes/equipment.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import favoritesRoutes from "./routes/favorites.routes.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/api/equipment", equipmentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/favorites", favoritesRoutes);
 
 // Basic health check route
 app.get("/", (req, res) => {
