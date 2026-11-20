@@ -54,6 +54,32 @@ export const verifyToken = (req, res, next) => {
 };
 
 /**
+ * Middleware: Optionally verify JWT in Authorization header.
+ * Sets req.user when a valid token is present, otherwise continues without
+ * it (req.user remains undefined). Used on routes that are public but show
+ * more data to authenticated users (e.g. equipment details by status).
+ */
+export const optionalVerifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.split(" ")[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.user = {
+        id: decoded.id || decoded.sub || decoded._id,
+        email: decoded.email ? decoded.email.toLowerCase() : undefined,
+        role: decoded.role || "customer",
+        name: decoded.name,
+        ...decoded,
+      };
+    } catch {
+      // Invalid/expired token — treat as anonymous, don't block the request
+    }
+  }
+  next();
+};
+
+/**
  * Middleware: Verify Customer role
  * Customers, Owners, and Admins can all access customer-level features
  */

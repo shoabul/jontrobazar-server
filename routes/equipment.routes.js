@@ -11,7 +11,7 @@ import {
   updateEquipmentStatus,
   getCategories,
 } from "../controllers/equipment.controller.js";
-import { verifyToken, verifyOwner, verifyAdmin } from "../middlewares/auth.js";
+import { verifyToken, verifyOwner, verifyAdmin, optionalVerifyToken } from "../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -28,7 +28,8 @@ router.delete("/:id", verifyToken, verifyOwner, deleteEquipment);            // 
 
 // ─── Public routes with params (AFTER owner routes to avoid conflicts) ────────
 router.get("/:id/availability", checkAvailability);                // GET /api/equipment/:id/availability
-router.get("/:id", getEquipmentById);                              // GET /api/equipment/:id (public - shows approved only for non-owners)
+// Detail page — public, but authenticated owners/admins see all statuses
+router.get("/:id", optionalVerifyToken, getEquipmentById);        // GET /api/equipment/:id
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────
 router.patch("/:id/status", verifyToken, verifyAdmin, updateEquipmentStatus);   // PATCH /api/equipment/:id/status

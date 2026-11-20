@@ -1,0 +1,5 @@
+◇ injected env (8) from .env
+◇ injected env (0) from .env
+◇ injected env (0) from .env
+◇ injected env (0) from .env
+Notice: equipment indexes verified or already exist: Error in specification { name: "equipment_text_search", key: { name: "text", description: "text", location: "text", category: "text", brand: "text" } } :: caused by :: text indexes cannot be created with apiStrict: true
