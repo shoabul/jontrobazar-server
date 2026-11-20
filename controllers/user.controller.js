@@ -26,7 +26,7 @@ export const getMe = async (req, res) => {
 
     let user = null;
     if (req.user.email) {
-      user = await db.collection("users").findOne(
+      user = await db.collection("user").findOne(
         { email: req.user.email },
         { projection: { password: 0 } }
       );
@@ -34,7 +34,7 @@ export const getMe = async (req, res) => {
 
     if (!user && req.user.id) {
       try {
-        user = await db.collection("users").findOne(
+        user = await db.collection("user").findOne(
           { _id: new ObjectId(req.user.id) },
           { projection: { password: 0 } }
         );
@@ -102,7 +102,7 @@ export const updateProfile = async (req, res) => {
     if (phone !== undefined) updateFields.phone = phone;
     if (address !== undefined) updateFields.address = address;
 
-    const result = await db.collection("users").findOneAndUpdate(
+    const result = await db.collection("user").findOneAndUpdate(
       { email: userEmail },
       {
         $set: updateFields,
@@ -144,7 +144,7 @@ export const getAllUsers = async (req, res) => {
     }
 
     const users = await db
-      .collection("users")
+      .collection("user")
       .find({}, { projection: { password: 0 } })
       .sort({ createdAt: -1 })
       .toArray();
@@ -198,7 +198,7 @@ export const updateUserRole = async (req, res) => {
       });
     }
 
-    const result = await db.collection("users").findOneAndUpdate(
+    const result = await db.collection("user").findOneAndUpdate(
       filter,
       {
         $set: {

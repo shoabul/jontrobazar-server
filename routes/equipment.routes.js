@@ -31,6 +31,6 @@ router.get("/:id/availability", checkAvailability);                // GET /api/e
 router.get("/:id", getEquipmentById);                              // GET /api/equipment/:id (public - shows approved only for non-owners)
 
 // ─── Admin routes ─────────────────────────────────────────────────────────────
-router.patch("/:id/status", verifyAdmin, updateEquipmentStatus);   // PATCH /api/equipment/:id/status
+router.patch("/:id/status", verifyToken, verifyAdmin, updateEquipmentStatus);   // PATCH /api/equipment/:id/status
 
 export default router;
