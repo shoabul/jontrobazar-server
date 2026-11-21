@@ -94,13 +94,15 @@ app.get("/", (req, res) => {
 app.get("/api/health", async (req, res) => {
   const db = getDb();
   let dbStatus = "disconnected";
+  let errorMessage = null;
 
   if (db) {
     try {
       await db.command({ ping: 1 });
       dbStatus = "connected";
-    } catch {
+    } catch (error) {
       dbStatus = "error";
+      errorMessage = error.message || "Unknown error";
     }
   }
 
@@ -108,6 +110,7 @@ app.get("/api/health", async (req, res) => {
     status: "ok",
     uptime: process.uptime(),
     database: dbStatus,
+    databaseError: dbStatus === "error" ? errorMessage : null,
     timestamp: new Date().toISOString(),
   });
 });
