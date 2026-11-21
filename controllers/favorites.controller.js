@@ -5,8 +5,12 @@ const COLLECTION = "favorites";
 
 function favoritesCollection() {
   const db = getDb();
-  if (!db) throw new Error("Database not connected");
-  return db.collection(COLLECTION);
+  return db?.collection(COLLECTION);
+}
+
+function equipmentCollection() {
+  const db = getDb();
+  return db?.collection("equipment");
 }
 
 function userId(req) {
@@ -17,12 +21,23 @@ function userEmail(req) {
   return (req.user?.email || "").toLowerCase();
 }
 
+function handleDbError(res) {
+  return res.status(503).json({
+    success: false,
+    message: "Database unavailable. Please try again later.",
+    code: "DB_UNAVAILABLE",
+  });
+}
+
 // ─── GET /api/favorites ────────────────────────────────────────────────────────
 // Returns the logged-in user's favorite equipment items, populated from the
 // `equipment` collection so the client gets full listing data in one call.
 export async function getFavorites(req, res) {
   try {
     const col = favoritesCollection();
+    if (!col) return handleDbError(res);
+    const equipCol = equipmentCollection();
+    if (!equipCol) return handleDbError(res);
     const email = userEmail(req);
 
     const entries = await col
@@ -32,7 +47,6 @@ export async function getFavorites(req, res) {
 
     // Resolve equipment docs in one query (handles empty list gracefully)
     const equipmentIds = entries.map((e) => new ObjectId(e.equipmentId));
-    const equipCol = getDb().collection("equipment");
     const equipmentDocs = equipmentIds.length
       ? await equipCol.find({ _id: { $in: equipmentIds } }).toArray()
       : [];
@@ -74,11 +88,13 @@ export async function addFavorite(req, res) {
     }
 
     const col = favoritesCollection();
+    if (!col) return handleDbError(res);
+    const equipCol = equipmentCollection();
+    if (!equipCol) return handleDbError(res);
     const email = userEmail(req);
 
     // Verify the equipment actually exists and is approved (so users can't
     // favorite unapproved or deleted listings)
-    const equipCol = getDb().collection("equipment");
     const equipment = await equipCol.findOne({ _id: oid });
     if (!equipment) {
       return res.status(404).json({ success: false, message: "Equipment not found" });
@@ -111,6 +127,7 @@ export async function removeFavorite(req, res) {
   try {
     const { equipmentId } = req.params;
     const col = favoritesCollection();
+    if (!col) return handleDbError(res);
     const email = userEmail(req);
 
     const result = await col.deleteOne({
@@ -135,6 +152,7 @@ export async function checkFavorite(req, res) {
   try {
     const { equipmentId } = req.params;
     const col = favoritesCollection();
+    if (!col) return handleDbError(res);
     const email = userEmail(req);
 
     const entry = await col.findOne({ userEmail, equipmentId });

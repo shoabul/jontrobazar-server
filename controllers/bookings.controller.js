@@ -6,14 +6,12 @@ const EQUIPMENT_COLLECTION = "equipment";
 
 function bookingsCollection() {
   const db = getDb();
-  if (!db) throw new Error("Database not connected");
-  return db.collection(BOOKINGS_COLLECTION);
+  return db?.collection(BOOKINGS_COLLECTION);
 }
 
 function equipmentCollection() {
   const db = getDb();
-  if (!db) throw new Error("Database not connected");
-  return db.collection(EQUIPMENT_COLLECTION);
+  return db?.collection(EQUIPMENT_COLLECTION);
 }
 
 function userId(req) {
@@ -32,12 +30,24 @@ function userName(req) {
   return req.user?.name || "";
 }
 
+function handleDbError(res) {
+  return res.status(503).json({
+    success: false,
+    message: "Database unavailable. Please try again later.",
+    code: "DB_UNAVAILABLE",
+  });
+}
+
 // ─── POST /api/bookings ────────────────────────────────────────────────────────
 // Customer creates a booking request. Validates equipment availability for the
 // date range and quantity, computes total, creates booking with status "pending"
 // and paymentStatus "unpaid".
 export async function createBooking(req, res) {
   try {
+    const bookingsCol = bookingsCollection();
+    const equipCol = equipmentCollection();
+    if (!bookingsCol || !equipCol) return handleDbError(res);
+
     const {
       equipmentId,
       startDate,
@@ -64,7 +74,6 @@ export async function createBooking(req, res) {
     }
 
     // Fetch equipment
-    const equipCol = equipmentCollection();
     const equipment = await equipCol.findOne({ _id: equipmentOid });
 
     if (!equipment) {
@@ -98,7 +107,6 @@ export async function createBooking(req, res) {
     }
 
     // Check availability: ensure no overlapping confirmed/completed bookings exceed available quantity
-    const bookingsCol = bookingsCollection();
     const overlappingBookings = await bookingsCol
       .find({
         equipmentId: equipmentId.toString(),
@@ -176,6 +184,7 @@ export async function createBooking(req, res) {
 export async function getMyRentals(req, res) {
   try {
     const col = bookingsCollection();
+    if (!col) return handleDbError(res);
     const email = userEmail(req);
 
     const bookings = await col
@@ -195,6 +204,7 @@ export async function getMyRentals(req, res) {
 export async function getOwnerRentals(req, res) {
   try {
     const col = bookingsCollection();
+    if (!col) return handleDbError(res);
     const email = userEmail(req);
 
     const bookings = await col
@@ -214,6 +224,7 @@ export async function getOwnerRentals(req, res) {
 export async function getAllBookings(req, res) {
   try {
     const col = bookingsCollection();
+    if (!col) return handleDbError(res);
 
     const bookings = await col.find({}).sort({ createdAt: -1 }).toArray();
 
@@ -228,6 +239,9 @@ export async function getAllBookings(req, res) {
 // Owner (for their equipment) or Admin updates booking status
 export async function updateBookingStatus(req, res) {
   try {
+    const col = bookingsCollection();
+    if (!col) return handleDbError(res);
+
     const { id } = req.params;
     const { bookingStatus } = req.body;
 
@@ -246,7 +260,6 @@ export async function updateBookingStatus(req, res) {
       return res.status(400).json({ success: false, message: "Invalid booking ID" });
     }
 
-    const col = bookingsCollection();
     const booking = await col.findOne({ _id: bookingOid });
 
     if (!booking) {

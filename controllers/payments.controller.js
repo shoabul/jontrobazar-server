@@ -20,14 +20,12 @@ function getStripe() {
 
 function bookingsCollection() {
   const db = getDb();
-  if (!db) throw new Error("Database not connected");
-  return db.collection(BOOKINGS_COLLECTION);
+  return db?.collection(BOOKINGS_COLLECTION);
 }
 
 function paymentsCollection() {
   const db = getDb();
-  if (!db) throw new Error("Database not connected");
-  return db.collection(PAYMENTS_COLLECTION);
+  return db?.collection(PAYMENTS_COLLECTION);
 }
 
 function userEmail(req) {
@@ -42,10 +40,21 @@ function userId(req) {
   return req.user?.id || req.user?._id;
 }
 
+function handleDbError(res) {
+  return res.status(503).json({
+    success: false,
+    message: "Database unavailable. Please try again later.",
+    code: "DB_UNAVAILABLE",
+  });
+}
+
 // ─── POST /api/payments/create-checkout-session ────────────────────────────────
 // Creates a Stripe Checkout Session for a booking
 export async function createCheckoutSession(req, res) {
   try {
+    const bookingsCol = bookingsCollection();
+    if (!bookingsCol) return handleDbError(res);
+
     const stripeClient = getStripe();
     if (!stripeClient) {
       return res.status(503).json({
@@ -66,7 +75,6 @@ export async function createCheckoutSession(req, res) {
       return res.status(400).json({ success: false, message: "Invalid bookingId format" });
     }
 
-    const bookingsCol = bookingsCollection();
     const booking = await bookingsCol.findOne({ _id: bookingOid });
 
     if (!booking) {
@@ -123,6 +131,10 @@ export async function createCheckoutSession(req, res) {
 // Verifies a Stripe Checkout Session (idempotent) and updates booking + creates payment record
 export async function verifyPayment(req, res) {
   try {
+    const bookingsCol = bookingsCollection();
+    const paymentsCol = paymentsCollection();
+    if (!bookingsCol || !paymentsCol) return handleDbError(res);
+
     const stripeClient = getStripe();
     if (!stripeClient) {
       return res.status(503).json({
@@ -166,9 +178,6 @@ export async function verifyPayment(req, res) {
     } catch {
       return res.status(400).json({ success: false, message: "Invalid bookingId in session metadata" });
     }
-
-    const bookingsCol = bookingsCollection();
-    const paymentsCol = paymentsCollection();
 
     // Check if payment already recorded (idempotency)
     const existingPayment = await paymentsCol.findOne({ transactionId: session.payment_intent });

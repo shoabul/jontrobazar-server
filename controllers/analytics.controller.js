@@ -1,6 +1,14 @@
 import { getDb } from "../config/db.js";
 import { ObjectId } from "mongodb";
 
+function handleDbError(res) {
+  return res.status(503).json({
+    success: false,
+    message: "Database unavailable. Please try again later.",
+    code: "DB_UNAVAILABLE",
+  });
+}
+
 /**
  * Owner Analytics
  * Returns metrics for the authenticated owner's equipment and bookings
@@ -8,6 +16,7 @@ import { ObjectId } from "mongodb";
 export const getOwnerAnalytics = async (req, res) => {
   try {
     const db = getDb();
+    if (!db) return handleDbError(res);
     const ownerEmail = req.user.email; // from verifyToken middleware
 
     // Get all equipment IDs owned by this owner
@@ -159,6 +168,7 @@ export const getOwnerAnalytics = async (req, res) => {
 export const getAdminAnalytics = async (req, res) => {
   try {
     const db = getDb();
+    if (!db) return handleDbError(res);
 
     // Total users by role
     const usersByRole = await db

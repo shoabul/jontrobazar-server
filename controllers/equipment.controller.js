@@ -7,14 +7,19 @@ const COLLECTION = "equipment";
 
 function equipmentCollection() {
   const db = getDb();
-  if (!db) throw new Error("Database not connected");
-  return db.collection(COLLECTION);
+  return db?.collection(COLLECTION);
 }
 
 function db() {
-  const d = getDb();
-  if (!d) throw new Error("Database not connected");
-  return d;
+  return getDb();
+}
+
+function handleDbError(res, operation = "operation") {
+  return res.status(503).json({
+    success: false,
+    message: `Database unavailable. Please try again later.`,
+    code: "DB_UNAVAILABLE",
+  });
 }
 
 function sanitizeEquipment(body, ownerInfo) {
@@ -78,6 +83,7 @@ function sanitizeEquipment(body, ownerInfo) {
  */
 export async function getAllEquipment(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
 
   const {
     search = "",
@@ -142,6 +148,7 @@ export async function getAllEquipment(req, res) {
  */
 export async function getFeaturedEquipment(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const items = await col
     .find({ status: "approved", quantity: { $gt: 0 } })
     .sort({ createdAt: -1 })
@@ -159,6 +166,7 @@ export async function getFeaturedEquipment(req, res) {
 export async function checkAvailability(req, res) {
   const col = equipmentCollection();
   const database = getDb();
+  if (!col || !database) return handleDbError(res);
   const bookingsCol = database.collection("bookings");
   const { id } = req.params;
   const { startDate, endDate, quantity = 1 } = req.query;
@@ -223,6 +231,7 @@ export async function checkAvailability(req, res) {
  */
 export async function getEquipmentById(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -249,6 +258,7 @@ export async function getEquipmentById(req, res) {
  */
 export async function addEquipment(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const ownerInfo = {
     name: req.user.name,
     email: req.user.email,
@@ -274,6 +284,7 @@ export async function addEquipment(req, res) {
  */
 export async function getMyEquipment(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const items = await col
     .find({ "owner.email": req.user.email })
     .sort({ createdAt: -1 })
@@ -288,6 +299,7 @@ export async function getMyEquipment(req, res) {
  */
 export async function updateEquipment(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -335,6 +347,7 @@ export async function updateEquipment(req, res) {
  */
 export async function deleteEquipment(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -359,6 +372,7 @@ export async function deleteEquipment(req, res) {
  */
 export async function getAllEquipmentAdmin(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
 
   const filter = {};
   if (req.query.status) filter.status = req.query.status;
@@ -374,6 +388,7 @@ export async function getAllEquipmentAdmin(req, res) {
  */
 export async function updateEquipmentStatus(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const { id } = req.params;
   const { status } = req.body;
 
@@ -403,6 +418,7 @@ export async function updateEquipmentStatus(req, res) {
  */
 export async function adminDeleteEquipment(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -422,6 +438,7 @@ export async function adminDeleteEquipment(req, res) {
  */
 export async function adminUpdateEquipment(req, res) {
   const col = equipmentCollection();
+  if (!col) return handleDbError(res);
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -453,6 +470,14 @@ export async function adminUpdateEquipment(req, res) {
  */
 export async function getCategories(req, res) {
   const col = equipmentCollection();
-  const categories = await col.distinct("category", { status: "approved" });
-  res.json({ success: true, data: categories });
+  if (!col) return handleDbError(res);
+  const categories = await col
+    .aggregate([
+      { $match: { status: "approved" } },
+      { $group: { _id: "$category" } },
+      { $project: { _id: 0, category: "$_id" } },
+      { $sort: { category: 1 } },
+    ])
+    .toArray();
+  res.json({ success: true, data: categories.map((c) => c.category) });
 }
