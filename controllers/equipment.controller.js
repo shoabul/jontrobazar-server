@@ -95,7 +95,7 @@ export async function getAllEquipment(req, res) {
     sort = "newest",
     page = "1",
     limit = "12",
-  } = req.query;
+  } = req.validatedQuery || req.query;
 
   const filter = { status: "approved" };
 

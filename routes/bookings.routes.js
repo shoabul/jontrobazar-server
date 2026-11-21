@@ -7,11 +7,12 @@ import {
   updateBookingStatus,
 } from "../controllers/bookings.controller.js";
 import { verifyToken, verifyCustomer, verifyOwner, verifyAdmin } from "../middlewares/auth.js";
+import { validate, schemas } from "../middlewares/validate.js";
 
 const router = express.Router();
 
 // Customer creates a booking
-router.post("/", verifyToken, verifyCustomer, createBooking);              // POST   /api/bookings
+router.post("/", verifyToken, verifyCustomer, validate(schemas.createBooking), createBooking);  // POST   /api/bookings
 
 // Customer views their rentals
 router.get("/my-rentals", verifyToken, getMyRentals);                      // GET    /api/bookings/my-rentals
@@ -23,6 +24,6 @@ router.get("/owner-rentals", verifyToken, verifyOwner, getOwnerRentals);    // G
 router.get("/all", verifyToken, verifyAdmin, getAllBookings);               // GET    /api/bookings/all
 
 // Owner (for their equipment) or Admin updates booking status
-router.patch("/:id/status", verifyToken, verifyOwner, updateBookingStatus);             // PATCH  /api/bookings/:id/status
+router.patch("/:id/status", verifyToken, verifyOwner, validate(schemas.bookingStatus), updateBookingStatus); // PATCH  /api/bookings/:id/status
 
 export default router;
