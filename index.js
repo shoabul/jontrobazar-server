@@ -29,81 +29,39 @@ app.use(
       if (isProduction && (!origin || origin === "null")) {
         return callback(new Error("CORS error: Origin required in production"));
       }
-      // Allow requests with no origin in development, or matched origins
       if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
       }
-      return callback(new Error(`CORS error: Origin ${origin} not allowed.`));
     },
     credentials: true,
   })
 );
 
 // Rate limiting
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isProduction ? 100 : 1000, // limit each IP to 100 requests per window in prod
-  message: { success: false, message: "Too many requests, please try again later." },
-  standardHeaders: true,
-  legacyHeaders: false,
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 });
+app.use("/api/", limiter);
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isProduction ? 10 : 50, // stricter for auth endpoints
-  message: { success: false, message: "Too many auth attempts, please try again later." },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use("/api/", apiLimiter);
-app.use("/api/users/token", authLimiter);
-app.use("/api/payments/create-checkout-session", authLimiter);
-
-// Body parser
 app.use(express.json());
 
-// Routes
-app.use("/api/users", userRoutes);
-app.use("/api/equipment", equipmentRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/favorites", favoritesRoutes);
-app.use("/api/bookings", bookingsRoutes);
-
-// Stripe webhook MUST use raw body — mount BEFORE express.json() would parse it
-app.post(
-  "/api/payments/webhook",
-  express.raw({ type: "application/json" }),
-  stripeWebhook
-);
-
-app.use("/api/payments", paymentsRoutes);
-app.use("/api/analytics", analyticsRoutes);
-
-// Basic health check route
-app.get("/", (req, res) => {
-  res.json({
-    status: "ok",
-    name: "JontroBazar API Server",
-    version: "1.0.0",
-    docs: "/docs/api-spec.md",
-  });
-});
-
-// Detailed health check route
+// Health check route
 app.get("/api/health", async (req, res) => {
-  const db = getDb();
   let dbStatus = "disconnected";
   let errorMessage = null;
 
-  if (db) {
-    try {
+  try {
+    const db = await connectDB();
+    if (db) {
       await db.command({ ping: 1 });
       dbStatus = "connected";
-    } catch (error) {
-      dbStatus = "error";
-      errorMessage = error.message || "Unknown error";
     }
+  } catch (error) {
+    dbStatus = "error";
+    errorMessage = error.message || "Unknown error";
   }
 
   res.json({
@@ -114,6 +72,18 @@ app.get("/api/health", async (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// API Routes
+app.use("/api/users", userRoutes);
+app.use("/api/equipment", equipmentRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/favorites", favoritesRoutes);
+app.use("/api/bookings", bookingsRoutes);
+app.use("/api/payments", paymentsRoutes);
+app.use("/api/analytics", analyticsRoutes);
+
+// Stripe webhook (raw body needed)
+app.post("/api/webhook/stripe", stripeWebhook);
 
 // 404 handler for undefined routes
 app.use((req, res) => {

@@ -11,6 +11,9 @@ let cachedClient = null;
 let cachedDb = null;
 let connectionPromise = null;
 
+// Track the last connection error for diagnostics
+let lastConnectionError = null;
+
 /**
  * Creates a new MongoClient with serverless-optimized options
  */
@@ -29,9 +32,9 @@ function createClient() {
     maxPoolSize: 10, // Limit connections per instance
     minPoolSize: 0, // Allow pool to shrink to 0 when idle
     maxIdleTimeMS: 30000, // Close idle connections after 30s
-    serverSelectionTimeoutMS: 10000, // Fail fast if server unavailable
-    socketTimeoutMS: 45000, // Socket timeout
-    connectTimeoutMS: 10000, // Initial connection timeout
+    serverSelectionTimeoutMS: 30000, // Allow more time for serverless cold starts
+    socketTimeoutMS: 60000, // Socket timeout
+    connectTimeoutMS: 30000, // Initial connection timeout (increased for serverless)
     retryWrites: true,
     retryReads: true,
   });
@@ -63,12 +66,16 @@ export const connectDB = async () => {
 
   if (!uri || uri.includes("<username>")) {
     console.warn("⚠️  MONGO_URI is not configured in .env. Database features unavailable.");
+    lastConnectionError = "MONGO_URI not configured";
     return null;
   }
 
   connectionPromise = (async () => {
     const client = createClient();
-    if (!client) return null;
+    if (!client) {
+      lastConnectionError = "Failed to create MongoClient";
+      return null;
+    }
 
     let retries = 3;
     let lastError;
@@ -78,7 +85,7 @@ export const connectDB = async () => {
         await client.connect();
         // Ping to confirm successful connection
         await client.db("admin").command({ ping: 1 });
-        
+
         const db = client.db(dbName);
         console.log(`✅ MongoDB connected successfully to database: "${dbName}"`);
 
@@ -87,6 +94,7 @@ export const connectDB = async () => {
 
         cachedClient = client;
         cachedDb = db;
+        lastConnectionError = null;
         return db;
       } catch (error) {
         lastError = error;
@@ -99,6 +107,7 @@ export const connectDB = async () => {
     }
 
     console.error("❌ MongoDB connection failed after retries:", lastError?.message);
+    lastConnectionError = lastError?.message || "Unknown error";
     await client.close().catch(() => {});
     return null;
   })();
@@ -153,6 +162,13 @@ export const getDb = () => {
 };
 
 /**
+ * Returns the last captured connection error message (for diagnostics)
+ */
+export const getLastConnectionError = () => {
+  return lastConnectionError;
+};
+
+/**
  * Force close and reset connection (useful for testing or cleanup)
  */
 export const closeDB = async () => {
@@ -176,7 +192,7 @@ export const closeDB = async () => {
 export const checkDbHealth = async () => {
   try {
     const db = await connectDB();
-    if (!db) return { status: "disconnected", reason: "No connection" };
+    if (!db) return { status: "disconnected", reason: lastConnectionError || "No connection" };
     await db.command({ ping: 1 });
     return { status: "connected" };
   } catch (err) {
