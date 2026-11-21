@@ -19,10 +19,16 @@ const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
 // CORS Configuration
 const allowedOrigins = [CLIENT_URL, "http://localhost:3000", "http://127.0.0.1:3000"];
+const isProduction = process.env.NODE_ENV === "production";
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, Postman) or matched origins
+      // In production, require a valid origin (no null/empty origin)
+      if (isProduction && (!origin || origin === "null")) {
+        return callback(new Error("CORS error: Origin required in production"));
+      }
+      // Allow requests with no origin in development, or matched origins
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
