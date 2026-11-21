@@ -3,7 +3,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev_jwt_secret_key_jontrobazar_2026_super_secure";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required but not set");
+}
 
 /**
  * Middleware: Verify JWT in Authorization header
