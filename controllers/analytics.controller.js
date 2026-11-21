@@ -162,7 +162,7 @@ export const getAdminAnalytics = async (req, res) => {
 
     // Total users by role
     const usersByRole = await db
-      .collection("users")
+      .collection("user")
       .aggregate([
         { $group: { _id: "$role", count: { $sum: 1 } } },
       ])
@@ -292,7 +292,7 @@ export const getAdminAnalytics = async (req, res) => {
 
     // Recent users (last 5)
     const recentUsers = await db
-      .collection("users")
+      .collection("user")
       .find()
       .sort({ createdAt: -1 })
       .limit(5)

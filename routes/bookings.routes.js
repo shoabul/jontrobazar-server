@@ -23,6 +23,6 @@ router.get("/owner-rentals", verifyToken, verifyOwner, getOwnerRentals);    // G
 router.get("/all", verifyToken, verifyAdmin, getAllBookings);               // GET    /api/bookings/all
 
 // Owner (for their equipment) or Admin updates booking status
-router.patch("/:id/status", verifyToken, updateBookingStatus);             // PATCH  /api/bookings/:id/status
+router.patch("/:id/status", verifyToken, verifyOwner, updateBookingStatus);             // PATCH  /api/bookings/:id/status
 
 export default router;
