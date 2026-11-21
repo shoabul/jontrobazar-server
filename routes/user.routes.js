@@ -13,8 +13,14 @@ import {
 
 const router = express.Router();
 
-// Development/Testing token generator
-router.post("/token", issueDevToken);
+// Development/Testing token generator — PROTECTED: admin only in production
+// In development (NODE_ENV !== 'production'), allow for testing
+const isDev = process.env.NODE_ENV !== "production";
+if (isDev) {
+  router.post("/token", issueDevToken);
+} else {
+  router.post("/token", verifyToken, verifyAdmin, issueDevToken);
+}
 
 // User profile routes
 router.get("/me", verifyToken, getMe);
