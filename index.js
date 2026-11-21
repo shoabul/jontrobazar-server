@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
 import { connectDB, getDb } from "./config/db.js";
 import userRoutes from "./routes/user.routes.js";
 import equipmentRoutes from "./routes/equipment.routes.js";
@@ -16,10 +17,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+const isProduction = process.env.NODE_ENV === "production";
 
 // CORS Configuration
 const allowedOrigins = [CLIENT_URL, "http://localhost:3000", "http://127.0.0.1:3000"];
-const isProduction = process.env.NODE_ENV === "production";
 
 app.use(
   cors({
@@ -37,6 +38,27 @@ app.use(
     credentials: true,
   })
 );
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: isProduction ? 100 : 1000, // limit each IP to 100 requests per window in prod
+  message: { success: false, message: "Too many requests, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: isProduction ? 10 : 50, // stricter for auth endpoints
+  message: { success: false, message: "Too many auth attempts, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/api/", apiLimiter);
+app.use("/api/users/token", authLimiter);
+app.use("/api/payments/create-checkout-session", authLimiter);
 
 // Body parser
 app.use(express.json());
