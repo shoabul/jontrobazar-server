@@ -18,6 +18,12 @@ export const validate = (schema, source = "body") => (req, res, next) => {
       toAssign = source;
     }
     
+    // If schema is empty or data is empty/undefined, allow pass-through
+    if (!data || Object.keys(data).length === 0) {
+      req[toAssign] = {};
+      return next();
+    }
+
     const result = schema.safeParse(data);
     
     if (!result.success) {
@@ -25,6 +31,8 @@ export const validate = (schema, source = "body") => (req, res, next) => {
       const messages = Object.entries(errors).flatMap(([field, msgs]) => 
         msgs.map(msg => `${field}: ${msg}`)
       );
+      
+      console.error("Validation failed for path:", req.originalUrl, "data:", data, "errors:", messages);
       
       return res.status(400).json({
         success: false,
@@ -167,7 +175,7 @@ export const schemas = {
 
   // Admin
   adminEquipmentQuery: z.object({
-    status: z.enum(["pending", "approved", "rejected"]).optional(),
+    status: z.string().optional(),
     category: z.string().optional(),
   }),
 };
