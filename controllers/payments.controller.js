@@ -187,10 +187,12 @@ export async function verifyPayment(req, res) {
         { _id: bookingOid },
         { $set: { paymentStatus: "paid", bookingStatus: "confirmed", updatedAt: new Date() } }
       );
+      // Fetch booking for consistent response structure
+      const updatedBooking = await bookingsCol.findOne({ _id: bookingOid });
       return res.json({
         success: true,
         message: "Payment already recorded",
-        data: existingPayment,
+        data: { payment: existingPayment, booking: updatedBooking },
       });
     }
 
