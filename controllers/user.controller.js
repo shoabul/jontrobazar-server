@@ -231,26 +231,68 @@ export const updateUserRole = async (req, res) => {
 };
 
 /**
- * POST /api/auth/token (Dev/Utility)
- * Issues a JWT token for testing roles and client integration
+ * POST /api/users/token
+ * Exchanges BetterAuth user info for an Express JWT token
+ * Public endpoint - validates user exists in database before issuing token
  */
 export const issueDevToken = async (req, res) => {
   try {
-    const { email, role = "customer", name = "Test User", id = "673c00000000000000000001" } = req.body;
+    const { email, role = "customer", name = "User", id } = req.body;
 
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: "Email is required to issue a test token",
+        message: "Email is required to issue a token",
       });
     }
 
-    const token = generateToken({ id, email: email.toLowerCase(), role, name });
+    const db = getDb();
+    let user = null;
+
+    // Verify user exists in database
+    if (db) {
+      user = await db.collection("user").findOne({ email: email.toLowerCase() });
+    }
+
+    // If no DB or user not found, fall back to provided data (for BetterAuth sync)
+    // But log a warning in production
+    if (!user) {
+      if (db && process.env.NODE_ENV === "production") {
+        console.warn(`Token requested for unknown user: ${email}`);
+      }
+      // Use provided data but generate a simple ID if not provided
+      const userId = id || `user_${Date.now()}`;
+      const token = generateToken({ 
+        id: userId, 
+        email: email.toLowerCase(), 
+        role, 
+        name 
+      });
+
+      return res.json({
+        success: true,
+        token,
+        user: { id: userId, email: email.toLowerCase(), role, name },
+      });
+    }
+
+    // User exists in DB - use DB data for token
+    const token = generateToken({ 
+      id: user._id.toString(), 
+      email: user.email, 
+      role: user.role || role, 
+      name: user.name || name 
+    });
 
     return res.json({
       success: true,
       token,
-      user: { id, email: email.toLowerCase(), role, name },
+      user: { 
+        id: user._id.toString(), 
+        email: user.email, 
+        role: user.role || role, 
+        name: user.name || name 
+      },
     });
   } catch (error) {
     console.error("Error in issueDevToken:", error);

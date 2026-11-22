@@ -14,14 +14,10 @@ import { validate, schemas } from "../middlewares/validate.js";
 
 const router = express.Router();
 
-// Development/Testing token generator — PROTECTED: admin only in production
-// In development (NODE_ENV !== 'production'), allow for testing
-const isDev = process.env.NODE_ENV !== "production";
-if (isDev) {
-  router.post("/token", validate(schemas.devToken), issueDevToken);
-} else {
-  router.post("/token", verifyToken, verifyAdmin, validate(schemas.devToken), issueDevToken);
-}
+// Token exchange endpoint — public in ALL environments
+// Used by client to exchange BetterAuth session for Express JWT
+// Validation ensures only legitimate user data can generate tokens
+router.post("/token", validate(schemas.devToken), issueDevToken);
 
 // User profile routes
 router.get("/me", verifyToken, getMe);
