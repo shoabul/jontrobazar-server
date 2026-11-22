@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { getDb } from "../config/db.js";
+import { getDbAsync } from "../config/db.js";
 import { generateToken } from "../utils/jwt.js";
 
 /**
@@ -8,7 +8,7 @@ import { generateToken } from "../utils/jwt.js";
  */
 export const getMe = async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDbAsync();
     if (!db) {
       // Graceful fallback: return user profile extracted directly from the verified token
       return res.json({
@@ -76,7 +76,7 @@ export const getMe = async (req, res) => {
  */
 export const updateProfile = async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDbAsync();
     if (!db) {
       return res.status(503).json({
         success: false,
@@ -135,7 +135,7 @@ export const updateProfile = async (req, res) => {
  */
 export const getAllUsers = async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDbAsync();
     if (!db) {
       return res.status(503).json({
         success: false,
@@ -169,7 +169,7 @@ export const getAllUsers = async (req, res) => {
  */
 export const updateUserRole = async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDbAsync();
     if (!db) {
       return res.status(503).json({
         success: false,
@@ -246,7 +246,7 @@ export const issueDevToken = async (req, res) => {
       });
     }
 
-    const db = getDb();
+    const db = await getDbAsync();
     let user = null;
 
     // Verify user exists in database

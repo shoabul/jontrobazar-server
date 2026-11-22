@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
-import { connectDB, getDb } from "./config/db.js";
+import { connectDB } from "./config/db.js";
 import userRoutes from "./routes/user.routes.js";
 import equipmentRoutes from "./routes/equipment.routes.js";
 import adminRoutes from "./routes/admin.routes.js";

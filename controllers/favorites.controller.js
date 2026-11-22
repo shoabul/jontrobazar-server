@@ -1,15 +1,15 @@
-import { getDb } from "../config/db.js";
+import { getDbAsync } from "../config/db.js";
 import { ObjectId } from "mongodb";
 
 const COLLECTION = "favorites";
 
-function favoritesCollection() {
-  const db = getDb();
+async function favoritesCollection() {
+  const db = await getDbAsync();
   return db?.collection(COLLECTION);
 }
 
-function equipmentCollection() {
-  const db = getDb();
+async function equipmentCollection() {
+  const db = await getDbAsync();
   return db?.collection("equipment");
 }
 
@@ -34,9 +34,9 @@ function handleDbError(res) {
 // `equipment` collection so the client gets full listing data in one call.
 export async function getFavorites(req, res) {
   try {
-    const col = favoritesCollection();
+    const col = await favoritesCollection();
     if (!col) return handleDbError(res);
-    const equipCol = equipmentCollection();
+    const equipCol = await equipmentCollection();
     if (!equipCol) return handleDbError(res);
     const email = userEmail(req);
 
@@ -87,9 +87,9 @@ export async function addFavorite(req, res) {
       return res.status(400).json({ success: false, message: "Invalid equipmentId format" });
     }
 
-    const col = favoritesCollection();
+    const col = await favoritesCollection();
     if (!col) return handleDbError(res);
-    const equipCol = equipmentCollection();
+    const equipCol = await equipmentCollection();
     if (!equipCol) return handleDbError(res);
     const email = userEmail(req);
 
@@ -126,7 +126,7 @@ export async function addFavorite(req, res) {
 export async function removeFavorite(req, res) {
   try {
     const { equipmentId } = req.params;
-    const col = favoritesCollection();
+    const col = await favoritesCollection();
     if (!col) return handleDbError(res);
     const email = userEmail(req);
 
@@ -151,7 +151,7 @@ export async function removeFavorite(req, res) {
 export async function checkFavorite(req, res) {
   try {
     const { equipmentId } = req.params;
-    const col = favoritesCollection();
+    const col = await favoritesCollection();
     if (!col) return handleDbError(res);
     const email = userEmail(req);
 

@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getDb } from "../config/db.js";
+import { getDbAsync } from "../config/db.js";
 import { ObjectId } from "mongodb";
 
 const BOOKINGS_COLLECTION = "bookings";
@@ -18,13 +18,13 @@ function getStripe() {
   return stripe;
 }
 
-function bookingsCollection() {
-  const db = getDb();
+async function bookingsCollection() {
+  const db = await getDbAsync();
   return db?.collection(BOOKINGS_COLLECTION);
 }
 
-function paymentsCollection() {
-  const db = getDb();
+async function paymentsCollection() {
+  const db = await getDbAsync();
   return db?.collection(PAYMENTS_COLLECTION);
 }
 
@@ -52,7 +52,7 @@ function handleDbError(res) {
 // Creates a Stripe Checkout Session for a booking
 export async function createCheckoutSession(req, res) {
   try {
-    const bookingsCol = bookingsCollection();
+    const bookingsCol = await bookingsCollection();
     if (!bookingsCol) return handleDbError(res);
 
     const stripeClient = getStripe();
@@ -131,8 +131,8 @@ export async function createCheckoutSession(req, res) {
 // Verifies a Stripe Checkout Session (idempotent) and updates booking + creates payment record
 export async function verifyPayment(req, res) {
   try {
-    const bookingsCol = bookingsCollection();
-    const paymentsCol = paymentsCollection();
+    const bookingsCol = await bookingsCollection();
+    const paymentsCol = await paymentsCollection();
     if (!bookingsCol || !paymentsCol) return handleDbError(res);
 
     const stripeClient = getStripe();
@@ -266,8 +266,8 @@ export async function stripeWebhook(req, res) {
 
         if (bookingId && customerEmail) {
           try {
-            const bookingsCol = bookingsCollection();
-            const paymentsCol = paymentsCollection();
+            const bookingsCol = await bookingsCollection();
+            const paymentsCol = await paymentsCollection();
 
             let bookingOid;
             try {

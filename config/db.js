@@ -162,6 +162,15 @@ export const getDb = () => {
 };
 
 /**
+ * Get DB instance, waiting for connection if necessary.
+ * Use this in route handlers instead of getDb() to avoid cold-start 503s.
+ */
+export const getDbAsync = async () => {
+  if (cachedDb) return cachedDb;
+  return connectDB();
+};
+
+/**
  * Returns the last captured connection error message (for diagnostics)
  */
 export const getLastConnectionError = () => {

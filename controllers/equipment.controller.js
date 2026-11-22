@@ -1,17 +1,17 @@
-import { getDb } from "../config/db.js";
+import { getDbAsync } from "../config/db.js";
 import { ObjectId } from "mongodb";
 
 const COLLECTION = "equipment";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function equipmentCollection() {
-  const db = getDb();
+async function equipmentCollection() {
+  const db = await getDbAsync();
   return db?.collection(COLLECTION);
 }
 
-function db() {
-  return getDb();
+async function db() {
+  return getDbAsync();
 }
 
 function handleDbError(res, operation = "operation") {
@@ -82,7 +82,7 @@ function sanitizeEquipment(body, ownerInfo) {
  * Public — search, filter, sort, paginate (approved only)
  */
 export async function getAllEquipment(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
 
   const {
@@ -147,7 +147,7 @@ export async function getAllEquipment(req, res) {
  * Public — 6 most recent approved items
  */
 export async function getFeaturedEquipment(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const items = await col
     .find({ status: "approved", quantity: { $gt: 0 } })
@@ -164,8 +164,8 @@ export async function getFeaturedEquipment(req, res) {
  * Query: startDate, endDate, quantity
  */
 export async function checkAvailability(req, res) {
-  const col = equipmentCollection();
-  const database = getDb();
+  const col = await equipmentCollection();
+  const database = await getDbAsync();
   if (!col || !database) return handleDbError(res);
   const bookingsCol = database.collection("bookings");
   const { id } = req.params;
@@ -230,7 +230,7 @@ export async function checkAvailability(req, res) {
  * Auth required — single item (all statuses visible if owner/admin, only approved for customer)
  */
 export async function getEquipmentById(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const { id } = req.params;
 
@@ -257,7 +257,7 @@ export async function getEquipmentById(req, res) {
  * Owner — create new equipment (status: pending)
  */
 export async function addEquipment(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const ownerInfo = {
     name: req.user.name,
@@ -283,7 +283,7 @@ export async function addEquipment(req, res) {
  * Owner — list own equipment (all statuses)
  */
 export async function getMyEquipment(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const items = await col
     .find({ "owner.email": req.user.email })
@@ -298,7 +298,7 @@ export async function getMyEquipment(req, res) {
  * Owner — update own equipment (resets status to pending if changed significantly)
  */
 export async function updateEquipment(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const { id } = req.params;
 
@@ -346,7 +346,7 @@ export async function updateEquipment(req, res) {
  * Owner — delete own equipment
  */
 export async function deleteEquipment(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const { id } = req.params;
 
@@ -371,7 +371,7 @@ export async function deleteEquipment(req, res) {
  * Admin — all equipment (all statuses), with optional status filter
  */
 export async function getAllEquipmentAdmin(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
 
   const filter = {};
@@ -387,7 +387,7 @@ export async function getAllEquipmentAdmin(req, res) {
  * Admin — approve or reject equipment
  */
 export async function updateEquipmentStatus(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const { id } = req.params;
   const { status } = req.body;
@@ -417,7 +417,7 @@ export async function updateEquipmentStatus(req, res) {
  * Admin — delete any equipment
  */
 export async function adminDeleteEquipment(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const { id } = req.params;
 
@@ -437,7 +437,7 @@ export async function adminDeleteEquipment(req, res) {
  * Admin — update any equipment (without resetting status)
  */
 export async function adminUpdateEquipment(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const { id } = req.params;
 
@@ -469,7 +469,7 @@ export async function adminUpdateEquipment(req, res) {
  * Public — distinct categories from approved equipment
  */
 export async function getCategories(req, res) {
-  const col = equipmentCollection();
+  const col = await equipmentCollection();
   if (!col) return handleDbError(res);
   const categories = await col
     .aggregate([

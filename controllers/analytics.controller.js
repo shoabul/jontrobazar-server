@@ -1,4 +1,4 @@
-import { getDb } from "../config/db.js";
+import { getDbAsync } from "../config/db.js";
 import { ObjectId } from "mongodb";
 
 function handleDbError(res) {
@@ -15,7 +15,7 @@ function handleDbError(res) {
  */
 export const getOwnerAnalytics = async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDbAsync();
     if (!db) return handleDbError(res);
     const ownerEmail = req.user.email; // from verifyToken middleware
 
@@ -167,7 +167,7 @@ export const getOwnerAnalytics = async (req, res) => {
  */
 export const getAdminAnalytics = async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDbAsync();
     if (!db) return handleDbError(res);
 
     // Total users by role

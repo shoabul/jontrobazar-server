@@ -1,16 +1,16 @@
-import { getDb } from "../config/db.js";
+import { getDbAsync } from "../config/db.js";
 import { ObjectId } from "mongodb";
 
 const BOOKINGS_COLLECTION = "bookings";
 const EQUIPMENT_COLLECTION = "equipment";
 
-function bookingsCollection() {
-  const db = getDb();
+async function bookingsCollection() {
+  const db = await getDbAsync();
   return db?.collection(BOOKINGS_COLLECTION);
 }
 
-function equipmentCollection() {
-  const db = getDb();
+async function equipmentCollection() {
+  const db = await getDbAsync();
   return db?.collection(EQUIPMENT_COLLECTION);
 }
 
@@ -183,7 +183,7 @@ export async function createBooking(req, res) {
 // Customer views their own bookings
 export async function getMyRentals(req, res) {
   try {
-    const col = bookingsCollection();
+    const col = await bookingsCollection();
     if (!col) return handleDbError(res);
     const email = userEmail(req);
 
@@ -203,7 +203,7 @@ export async function getMyRentals(req, res) {
 // Owner views rentals for their equipment
 export async function getOwnerRentals(req, res) {
   try {
-    const col = bookingsCollection();
+    const col = await bookingsCollection();
     if (!col) return handleDbError(res);
     const email = userEmail(req);
 
@@ -223,7 +223,7 @@ export async function getOwnerRentals(req, res) {
 // Admin views all bookings
 export async function getAllBookings(req, res) {
   try {
-    const col = bookingsCollection();
+    const col = await bookingsCollection();
     if (!col) return handleDbError(res);
 
     const bookings = await col.find({}).sort({ createdAt: -1 }).toArray();
@@ -239,7 +239,7 @@ export async function getAllBookings(req, res) {
 // Owner (for their equipment) or Admin updates booking status
 export async function updateBookingStatus(req, res) {
   try {
-    const col = bookingsCollection();
+    const col = await bookingsCollection();
     if (!col) return handleDbError(res);
 
     const { id } = req.params;
