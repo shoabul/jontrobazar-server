@@ -44,8 +44,8 @@ function handleDbError(res) {
 // and paymentStatus "unpaid".
 export async function createBooking(req, res) {
   try {
-    const bookingsCol = bookingsCollection();
-    const equipCol = equipmentCollection();
+    const bookingsCol = await bookingsCollection();
+    const equipCol = await equipmentCollection();
     if (!bookingsCol || !equipCol) return handleDbError(res);
 
     const {
